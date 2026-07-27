@@ -10,7 +10,12 @@ const adminMiddleware = async (req,res,next)=>{
         if(!token)
             throw new Error("Token is not persent");
 
-        const payload = jwt.verify(token,process.env.JWT_KEY);
+        const payload = jwt.verify(token, process.env.JWT_KEY);
+
+        console.log("Payload:", payload);
+        console.log("User Role:", payload.role);
+
+
 
         const {_id} = payload;
 
