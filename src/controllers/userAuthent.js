@@ -28,39 +28,57 @@ const register = async (req,res)=>{
 }
 
 
-const login = async (req,res)=>{
+const login = async (req, res) => {
 
-    try{
-        const {emailId, password} = req.body;
+    try {
 
-        if(!emailId)
+        const { emailId, password } = req.body;
+
+        if (!emailId || !password) {
             throw new Error("Invalid Credentials");
-        if(!password)
+        }
+
+        const user = await User.findOne({ emailId });
+
+        if (!user) {
             throw new Error("Invalid Credentials");
+        }
 
-        const user = await User.findOne({emailId});
+        const match = await bcrypt.compare(password, user.password);
 
-        const match = bcrypt.compare(password,user.password);
-
-        if(!match)
+        if (!match) {
             throw new Error("Invalid Credentials");
+        }
 
         const token = jwt.sign(
-    {
-        _id: user._id,
-        emailId: user.emailId,
-        role: user.role
-    },
-    process.env.JWT_KEY,
-    { expiresIn: 60 * 60 }
-);
-        res.cookie('token',token,{maxAge: 60*60*1000});
-        res.status(200).send("Logged In Succeessfully");
+            {
+                _id: user._id,
+                emailId: user.emailId,
+                role: user.role
+            },
+            process.env.JWT_KEY,
+            { expiresIn: "1h" }
+        );
+
+        res.cookie("token", token, {
+            maxAge: 60 * 60 * 1000,
+            httpOnly: true
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Logged In Successfully",
+            token
+        });
+
+    } catch (err) {
+
+        return res.status(401).json({
+            success: false,
+            message: err.message
+        });
     }
-    catch(err){
-        res.status(401).send("Error: "+err);
-    }
-}
+};
 
 
 // logOut feature

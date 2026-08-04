@@ -2,9 +2,9 @@ const axios = require("axios");
 
 const getLanguageById = (lang) => {
     const language = {
-        "c++": 54,
-        "java": 62,
-        "javascript": 63
+        "c++": "cpp17",
+        "java": "java",
+        "javascript": "nodejs"
     };
 
     return language[lang.toLowerCase()];
@@ -12,28 +12,33 @@ const getLanguageById = (lang) => {
 
 const submitBatch = async (submissions) => {
     try {
-        const response = await axios.post(
-            "http://localhost:2358/submissions/batch?base64_encoded=false&wait=false",
-            { submissions }
-        );
+        const results = [];
 
-        return response.data;
+        for (const submission of submissions) {
+            const response = await axios.post(
+                "https://api.jdoodle.com/v1/execute",
+                {
+                    clientId: process.env.JDOODLE_CLIENT_ID,
+                    clientSecret: process.env.JDOODLE_CLIENT_SECRET,
+                    script: submission.source_code,
+                    language: submission.language_id,
+                    versionIndex: "0",
+                    stdin: submission.stdin
+                }
+            );
+
+            results.push({
+                output: response.data.output,
+                expected_output: submission.expected_output,
+                statusCode: response.data.statusCode,
+                isExecutionSuccess: response.data.isExecutionSuccess
+            });
+        }
+
+        return results;
+
     } catch (err) {
-        console.error(err.response?.data || err.message);
-        throw err;
-    }
-};
-
-const getBatchResult = async (tokens) => {
-    try {
-        const tokenString = tokens.join(",");
-
-        const response = await axios.get(
-            `http://localhost:2358/submissions/batch?tokens=${tokenString}&base64_encoded=false`
-        );
-
-        return response.data.submissions;
-    } catch (err) {
+        console.error("JDoodle Error:");
         console.error(err.response?.data || err.message);
         throw err;
     }
@@ -41,6 +46,5 @@ const getBatchResult = async (tokens) => {
 
 module.exports = {
     getLanguageById,
-    submitBatch,
-    getBatchResult
+    submitBatch
 };
